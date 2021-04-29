@@ -2,7 +2,6 @@ from flask import Flask, request, redirect, url_for, send_from_directory
 import glob
 import markdown2
 from os import path
-import pygments
 
 app = Flask(__name__, static_url_path='')
 currentresource = ""
@@ -10,6 +9,11 @@ cssstate = "day"
 css = ""
 htmlPrologue = ""
 htmlEpilogue = ""
+
+siteroot = "site/"
+siteimages = "images/"
+sitemarkdown = "markdown/"
+
 cssday = """
 table {
     font-size: 15px;
@@ -435,15 +439,13 @@ def writemarkdown():
     global htmlPrologue
     global htmlEpilog
 
-    print(repr(request.form))
     if request.form['submit'] == 'cancel':
-        sethtmlbasis()
         return redirect('http://localhost:7000/writer/' + request.form['filename'])
     elif request.form['submit'] == 'done':
-        f = open(request.form['filename'],'w')
+        file_name = siteroot + sitemarkdown + request.form['filename']
+        f = open(file_name, 'w')
         f.write(request.form['markdowntxt'])
         f.close()
-        sethtmlbasis()
         return redirect('http://localhost:7000/writer/' + request.form['filename'])
         
 
@@ -452,7 +454,6 @@ def writenewmarkdown(filename):
     global htmlPrologue
     global htmlEpilog
 
-    sethtmlbasis()
     return htmlPrologue + """
 <form method='POST' action="/writemarkdown" role='form'>
 <textarea id='markdowntxt' name='markdowntxt' rows='32' cols='120'>
@@ -471,12 +472,12 @@ def rendermarkdown(filename):
     global htmlPrologue
     global htmlEpilog
 
-    if path.exists(filename):
-        with open(filename) as f:
+    file_name = siteroot + sitemarkdown + filename
+    if path.exists(file_name):
+        with open(file_name) as f:
             read_data = f.read()
             f.close()
 
-        sethtmlbasis()
         return htmlPrologue + """
 <form method='POST' action="/writemarkdown" role='form'>
 <textarea id='markdowntxt' name='markdowntxt' rows='32' cols='120'>
@@ -493,22 +494,22 @@ def rendermarkdown(filename):
 
 
 @app.route('/writer/')
-def writer():
+def markdownwriter():
     global htmlPrologue
     global htmlEpilog
+    global siteroot
+    global sitemarkdown
 
-    if path.exists('./README.md'):
-        with open('./README.md') as f:
+    if path.exists(siteroot + sitemarkdown + 'README.md'):
+        with open(siteroot + sitemarkdown + 'README.md') as f:
             read_data = f.read()
 
-        sethtmlbasis()
         return htmlPrologue + "<br><h6><a href='http://localhost:7000/rendermarkdown/README.md'>edit README.md</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue
     else:
         scripts = ""
         for file_name in glob.iglob('./*.md', recursive=True):
             scripts = scripts + '[' + file_name + '](' + file_name + ')' + '\n\r'
 
-        sethtmlbasis()
         return htmlPrologue + markdown2.markdown(scripts, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue
 
 
@@ -536,25 +537,22 @@ def exporthtml():
 
 
 @app.route('/writer/<filename>')
-def scribum(filename):
+def writer(filename):
     global htmlPrologue
     global htmlEpilogue
-    global currentresource 
+    global siteroot
+    global siteimages
+    global sitemarkdown
     
-    currentresource = request.path
+    if path.exists(siteroot + siteimages + filename):
+        return send_from_directory(siteroot + siteimages, filename)
+    elif path.exists(siteroot + sitemarkdown + filename):
+        with open(siteroot + sitemarkdown + filename) as f:
+            read_data = f.read()
 
-    if path.exists(filename):
-        if filename[-3:] == "jpg" or filename[-3:] == "png" or filename[-3:] == "gif":
-            return send_from_directory('', filename)
-        else:
-            with open(filename) as f:
-                read_data = f.read()
+        return htmlPrologue + "<br><h6><a href='http://localhost:7000/rendermarkdown/" + filename + "'>edit " + filename + "</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue
 
-            sethtmlbasis()
-            return htmlPrologue + "<br><h6><a href='http://localhost:7000/rendermarkdown/" + filename + "'>edit " + filename + "</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue
-    else:
-        sethtmlbasis()
-        return htmlPrologue + markdown2.markdown('*404* NOTFOUND\n\r', extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + "<br><h6><a href='http://localhost:7000/writenewmarkdown/" + filename + "'>create " + filename + "</a></h6><br>" + htmlEpilogue
+    return htmlPrologue + markdown2.markdown('*404* NOTFOUND\n\r', extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + "<br><h6><a href='http://localhost:7000/writenewmarkdown/" + filename + "'>create " + filename + "</a></h6><br>" + htmlEpilogue
 
 
 if __name__ == '__main__':
