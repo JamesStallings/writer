@@ -10,9 +10,18 @@ css = ""
 htmlPrologue = ""
 htmlEpilogue = ""
 
-siteroot = "site/"
+# the following set of three intializations dictate some logical site structure
+# unfortunately this seems to be too complex for github pages and their jekyll conversion workflow so
+# the enabled configuration of those variables is a default for github pages
+
+""" siteroot = "site/"
 siteimages = "images/"
 sitemarkdown = "markdown/"
+"""
+
+siteroot = "./"
+siteimages = ""
+sitemarkdown = ""
 
 cssday = """
 table {
@@ -467,12 +476,16 @@ def writenewmarkdown(filename):
 """ + htmlEpilogue
 
 
-@app.route('/rendermarkdown/<filename>', methods=['GET'])
-def rendermarkdown(filename):
+@app.route('/editmarkdown/<filename>', methods=['GET'])
+def editmarkdown(filename):
     global htmlPrologue
     global htmlEpilog
 
-    file_name = siteroot + sitemarkdown + filename
+    if filename == "index.md":
+        file_name = siteroot + filename
+    else:
+        file_name = siteroot + sitemarkdown + filename
+
     if path.exists(file_name):
         with open(file_name) as f:
             read_data = f.read()
@@ -500,11 +513,11 @@ def markdownwriter():
     global siteroot
     global sitemarkdown
 
-    if path.exists(siteroot + sitemarkdown + 'README.md'):
-        with open(siteroot + sitemarkdown + 'README.md') as f:
+    if path.exists(siteroot + 'index.md'):
+        with open(siteroot + 'index.md') as f:
             read_data = f.read()
 
-        return htmlPrologue + "<br><h6><a href='http://localhost:7000/rendermarkdown/README.md'>edit README.md</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue
+        return htmlPrologue + "<br><h6><a href='http://localhost:7000/editmarkdown/index.md'>edit index.md</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue
     else:
         scripts = ""
         for file_name in glob.iglob('./*.md', recursive=True):
@@ -531,9 +544,9 @@ def exporthtml():
         htmlfile = filename + ".html"
 
         with open(htmlfile, 'w') as newf:
-            write_data = newf.write(htmlPrologue + "<br><h6><a href='http://localhost:7000/rendermarkdown/" + filename + "'>edit " + filename + "</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue)
+            write_data = newf.write(htmlPrologue + "<br><h6><a href='http://localhost:7000/editmarkdown/" + filename + "'>edit " + filename + "</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue)
 
-        return htmlPrologue + "<br><h6><a href='http://localhost:7000/rendermarkdown/" + filename + "'>edit " + filename + "</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue
+        return htmlPrologue + "<br><h6><a href='http://localhost:7000/editmarkdown/" + filename + "'>edit " + filename + "</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue
 
 
 @app.route('/writer/<filename>')
@@ -550,7 +563,7 @@ def writer(filename):
         with open(siteroot + sitemarkdown + filename) as f:
             read_data = f.read()
 
-        return htmlPrologue + "<br><h6><a href='http://localhost:7000/rendermarkdown/" + filename + "'>edit " + filename + "</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue
+        return htmlPrologue + "<br><h6><a href='http://localhost:7000/editmarkdown/" + filename + "'>edit " + filename + "</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue
 
     return htmlPrologue + markdown2.markdown('*404* NOTFOUND\n\r', extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + "<br><h6><a href='http://localhost:7000/writenewmarkdown/" + filename + "'>create " + filename + "</a></h6><br>" + htmlEpilogue
 
