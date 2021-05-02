@@ -394,8 +394,15 @@ def sethtmlbasis():
 
     if 'items' in hcard:
         name = hcard['items'][0]['properties']['name']
+        nickname = hcard['items'][0]['properties']['nickname']
         photourl = hcard['items'][0]['properties']['photo']
         hcardurl = hcard['items'][0]['properties']['url']
+        org = hcard['items'][0]['properties']['org']
+        title = hcard['items'][0]['properties']['job-title']
+        role = hcard['items'][0]['properties']['role']
+        email = hcard['items'][0]['properties']['email']
+        phone = hcard['items'][0]['properties']['tel']
+        note0 = hcard['items'][0]['properties']['note']
         htmlPrologue = """
 <!DOCTYPE html>
 <html>
@@ -407,23 +414,38 @@ def sethtmlbasis():
   <span id="hcard" class="hcard">
     <table>
       <tr>
-        <td rowspan=7>
-          <div id="image" class="hcard">
+        <td rowspan=3>
             <image src=%s>
-          </div>
         </td>
-      <tr>
-        <td>
-          Name: %s
-        </td>
-      </tr>
-      <tr>
-        <td>
-          h-card url: %s
+        <td><table>
+          <tr>
+            <td>
+                Name: %s aka %s
+            </td>
+            <td>
+                Org/Title: %s/%s, %s
+            </td>
+          </tr>
+          <tr>
+            <td>
+                h-card url: %s
+            </td>
+            <td>
+              e-mail: %s
+            </td>
+          </tr>
+          <tr>
+            <td>
+              phone# %s
+            </td>
+            <td>
+              %s
+            </td>
+          </tr></table>
         </td>
       </tr>
     </table>
-  </span>""" % (photourl[0], name[0], hcardurl[0])
+  </span>""" % (photourl[0], name[0], nickname[0], org[0], title[0], role[0], hcardurl[0], email[0], phone[0], note0[0])
 
     else:
 
