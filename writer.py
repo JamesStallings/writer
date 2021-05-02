@@ -392,7 +392,24 @@ def sethtmlbasis():
     global htmlEpilogue
     global hcard
 
-    htmlPrologue = """
+    if 'items' in hcard:
+        photourl = hcard['items'][0]['properties']['photo']
+        print("photourl: %s" % photourl[0])
+        htmlPrologue = """
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>writer markdown service 0.1a</title>
+    <style type=text/css>""" + css + """</style>
+  </head>
+  <body>
+  <span name="hcard" class="hcard">
+    <div id="image" class="hcard">
+    <image src=%s height="320px" width="270px"></div></span>""" % photourl[0]
+
+    else:
+
+        htmlPrologue = """
 <!DOCTYPE html>
 <html>
   <head>
@@ -447,9 +464,7 @@ def importhcard():
     global hcard
 
     with open('hcard.html','r') as file:
-
-        items = file.read()
-        hcard = mf2py.Parse(items).to_dict(filter_by_type(doc=items))
+        hcard = mf2py.parse(file.read())
 
     sethtmlbasis()
     return redirect(redirect_url())
