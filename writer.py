@@ -390,6 +390,7 @@ css = cssday
 def sethtmlbasis():
     global htmlPrologue
     global htmlEpilogue
+    global hcard
 
     htmlPrologue = """
 <!DOCTYPE html>
@@ -446,7 +447,9 @@ def importhcard():
     global hcard
 
     with open('hcard.html','r') as file:
-        hcard = mf2py.parse(doc=file)
+
+        items = file.read()
+        hcard = mf2py.Parse(items).to_dict(filter_by_type(doc=items))
 
     sethtmlbasis()
     return redirect(redirect_url())
