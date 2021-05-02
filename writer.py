@@ -408,7 +408,6 @@ def sethtmlbasis():
           <a href="#modal-close" title="close" class="modal-close">close &times;</a>
           <h1>system menu</h1>
           <div><a href='http://localhost:7000/togglecss'>toggle CSS<div>
-          <div><a href='http://localhost:7000/exporthtml/'>export HTML<div>
         </div>
       </div>
     </footer>
@@ -516,26 +515,6 @@ def renderdefaultview():
 
         return htmlPrologue + markdown2.markdown(scripts, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue
 
-
-@app.route('/exporthtml/')
-def exporthtml():
-    global htmlPrologue
-    global htmlEpilogue
-    global currentresource 
-    
-    filename = './' + currentresource.split('/')[2]
-
-    print('filename. %s' % filename)
-    if path.exists(filename):
-        with open(filename) as f:
-            read_data = f.read()
-
-        sethtmlbasis()
-
-        htmlfile = filename + ".html"
-
-        with open(htmlfile, 'w') as newf:
-            write_data = newf.write(htmlPrologue + "<br><h6><a href='http://localhost:7000/editmarkdown/" + filename + "'>edit " + filename + "</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue)
 
         return htmlPrologue + "<br><h6><a href='http://localhost:7000/editmarkdown/" + filename + "'>edit " + filename + "</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue
 
