@@ -393,8 +393,9 @@ def sethtmlbasis():
     global hcard
 
     if 'items' in hcard:
+        name = hcard['items'][0]['properties']['name']
         photourl = hcard['items'][0]['properties']['photo']
-        print("photourl: %s" % photourl[0])
+        hcardurl = hcard['items'][0]['properties']['url']
         htmlPrologue = """
 <!DOCTYPE html>
 <html>
@@ -403,9 +404,26 @@ def sethtmlbasis():
     <style type=text/css>""" + css + """</style>
   </head>
   <body>
-  <span name="hcard" class="hcard">
-    <div id="image" class="hcard">
-    <image src=%s height="320px" width="270px"></div></span>""" % photourl[0]
+  <span id="hcard" class="hcard">
+    <table>
+      <tr>
+        <td rowspan=7>
+          <div id="image" class="hcard">
+            <image src=%s>
+          </div>
+        </td>
+      <tr>
+        <td>
+          Name: %s
+        </td>
+      </tr>
+      <tr>
+        <td>
+          h-card url: %s
+        </td>
+      </tr>
+    </table>
+  </span>""" % (photourl[0], name[0], hcardurl[0])
 
     else:
 
