@@ -444,7 +444,7 @@ def importhcard():
     global hcard
 
     with open('hcard.html','r') as file:
-    hcard = mf2py.parse(doc=file)
+        hcard = mf2py.parse(doc=file)
     
     
 @app.route('/writemarkdown', methods=['POST'])
