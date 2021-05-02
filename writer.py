@@ -1,6 +1,7 @@
 from flask import Flask, request, redirect, url_for, send_from_directory
 import glob
 import markdown2
+import mf2py
 from os import path
 
 app = Flask(__name__, static_url_path='')
@@ -408,7 +409,7 @@ def sethtmlbasis():
           <a href="#modal-close" title="close" class="modal-close">close &times;</a>
           <h1>system menu</h1>
           <div><a href='http://localhost:7000/togglecss'>toggle CSS<div>
-          <div><a href='http://localhost:7000/exporthtml/'>export HTML<div>
+          <div><a href='http://localhost:7000/importhcard/'>import hcard.html<div>
         </div>
       </div>
     </footer>
@@ -438,6 +439,14 @@ def togglecss():
     sethtmlbasis()
     return redirect(redirect_url())
 
+@app.route('/importhcard', methods=['GET'])
+def importhcard():
+    global hcard
+
+    with open('hcard.html','r') as file:
+    hcard = mf2py.parse(doc=file)
+    
+    
 @app.route('/writemarkdown', methods=['POST'])
 def writemarkdown():
     global htmlPrologue
