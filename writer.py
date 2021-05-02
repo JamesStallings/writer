@@ -10,6 +10,7 @@ cssstate = "day"
 css = ""
 htmlPrologue = ""
 htmlEpilogue = ""
+hcard = dict()
 
 """ siteroot = "site/"
 siteimages = "images/"
@@ -408,8 +409,8 @@ def sethtmlbasis():
         <div>
           <a href="#modal-close" title="close" class="modal-close">close &times;</a>
           <h1>system menu</h1>
-          <div><a href='http://localhost:7000/togglecss'>toggle CSS<div>
-          <div><a href='http://localhost:7000/importhcard/'>import hcard.html<div>
+          <div><a href='http://localhost:7000/togglecss'>toggle CSS</a><div>
+          <div><a href='http://localhost:7000/importhcard'>import hcard.html<a><div>
         </div>
       </div>
     </footer>
@@ -439,13 +440,16 @@ def togglecss():
     sethtmlbasis()
     return redirect(redirect_url())
 
+
 @app.route('/importhcard', methods=['GET'])
 def importhcard():
     global hcard
 
     with open('hcard.html','r') as file:
         hcard = mf2py.parse(doc=file)
-    
+
+    sethtmlbasis()
+    return redirect(redirect_url())
     
 @app.route('/writemarkdown', methods=['POST'])
 def writemarkdown():
