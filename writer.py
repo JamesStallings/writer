@@ -21,14 +21,17 @@ siteroot = "./site/"
 siteimages = ""
 sitemarkdown = ""
 
+mdfile = ""
 
 def sethtmlbasis():
+    global sitemarkdown
     global htmlPrologue
     global htmlEpilogue
     global hcard
     global hcardurl
     global css
     global cssstate
+    global mdfile
 
     cssfile = "writer-%s.css" % cssstate
     if path.exists(cssfile):
@@ -36,8 +39,6 @@ def sethtmlbasis():
             css = f.read()
             f.close()
 
-    print("loaded css: %s" % ("writer-%s.css" % cssstate))
-    
     if 'items' in hcard:
         name = hcard['items'][0]['properties']['name']
         nickname = hcard['items'][0]['properties']['nickname']
@@ -49,13 +50,47 @@ def sethtmlbasis():
         email = hcard['items'][0]['properties']['email']
         phone = hcard['items'][0]['properties']['tel']
         note0 = hcard['items'][0]['properties']['note']
-        htmlPrologue = """
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>writer markdown service 0.1a</title>
-    <style type=text/css>""" + css + """</style>
-  </head>
+
+        file_name = siteroot + sitemarkdown + mdfile + ".pre"
+        if mdfile != "" and path.exists(file_name):
+            with open(file_name) as f:
+                htmlPrologue = f.read()
+                f.close()
+        file_name = siteroot + sitemarkdown + mdfile + ".post"
+        if mdfile != "" and path.exists(file_name):
+            with open(file_name) as f:
+                htmlEpilogue = f.read()
+                f.close()
+        else:
+            htmlPrologue = """
+ <!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width">
+
+  <title>Write: Read-Write, the read-write web. The web for Humans</title>
+  <script type="module">
+    document.documentElement.classList.remove('no-js');
+    document.documentElement.classList.add('js');
+  </script>
+
+  <meta name="description" content="Digital Presence of James Stallings">
+  <meta property="og:title" content="code4peeps">
+  <meta property="og:description" content="content rendering">
+  <meta property="og:image" content="http://static.code4peeps.life/me.jpg">
+  <meta property="og:image:alt" content="selfie">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://reader.code4peeps.life/reader/index.md">
+  <link rel="canonical" href="http://reader.code4peeps.life/reader/index.md">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/my.webmanifest">
+  <meta name="theme-color" content="#FF00FF">
+</head> 
+  <style type=text/css>""" + css + """</style>
   <body>
   <span id="h-card" class="h-card">
     <table>
@@ -98,8 +133,8 @@ def sethtmlbasis():
     </table>
   </span>""" % (photourl[0], name[0], nickname[0], org[0], title[0], role[0], hcardurl[0], email[0], phone[0], note0[0])
 
+# no hcard
     else:
-
         htmlPrologue = """
 <!DOCTYPE html>
 <html>
@@ -162,9 +197,12 @@ def importhcard():
 def writemarkdown():
     global htmlPrologue
     global htmlEpilog
+    global mdfile
+
+    mdfile = request.form['filename']
 
     if request.form['submit'] == 'cancel':
-        return redirect('http://localhost:7000/writer/' + request.form['filename'])
+        return redirect('http://localhost:7000/writer/' + mdfile)
     elif request.form['submit'] == 'done':
         file_name = siteroot + sitemarkdown + request.form['filename']
         f = open(file_name, 'w')
@@ -173,10 +211,13 @@ def writemarkdown():
         return redirect('http://localhost:7000/writer/' + request.form['filename'])
         
 
-@app.route('/writenewmarkdown/<filename>', methods=['GET'])
-def writenewmarkdown(filename):
+@app.route('/createnewmarkdown/<filename>', methods=['GET'])
+def createnewmarkdown(filename):
     global htmlPrologue
     global htmlEpilog
+    global mdfile
+
+    mdfile = mdfile
 
     return htmlPrologue + """
 <form method='POST' action="/writemarkdown" role='form'>
@@ -195,9 +236,11 @@ def writenewmarkdown(filename):
 def editmarkdown(filename):
     global htmlPrologue
     global htmlEpilog
+    global mdfile
 
     file_name = siteroot + sitemarkdown + filename
     if path.exists(file_name):
+        mdfile = filename
         with open(file_name) as f:
             read_data = f.read()
             f.close()
@@ -223,8 +266,10 @@ def renderdefaultview():
     global htmlEpilog
     global siteroot
     global sitemarkdown
+    global mdfile
 
     if path.exists(siteroot + sitemarkdown + 'index.md'):
+        mdfile = "index.md"
         with open(siteroot + sitemarkdown + 'index.md') as f:
             read_data = f.read()
 
@@ -235,29 +280,6 @@ def renderdefaultview():
             scripts = scripts + '[' + file_name + '](' + file_name + ')' + '\n\r'
 
         return htmlPrologue + markdown2.markdown(scripts, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue
-
-
-@app.route('/exporthtml/')
-def exporthtml():
-    global htmlPrologue
-    global htmlEpilogue
-    global currentresource 
-    
-    filename = './' + currentresource.split('/')[2]
-
-    print('filename. %s' % filename)
-    if path.exists(filename):
-        with open(filename) as f:
-            read_data = f.read()
-
-        sethtmlbasis()
-
-        htmlfile = filename + ".html"
-
-        with open(htmlfile, 'w') as newf:
-            write_data = newf.write(htmlPrologue + "<br><h6><a href='http://localhost:7000/editmarkdown/" + filename + "'>edit " + filename + "</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue)
-
-        return htmlPrologue + "<br><h6><a href='http://localhost:7000/editmarkdown/" + filename + "'>edit " + filename + "</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue
 
 
 @app.route('/writer/<filename>')
@@ -279,7 +301,7 @@ def writer(filename):
 
             return htmlPrologue + "<br><h6><a href='http://localhost:7000/editmarkdown/" + filename + "'>edit " + filename + "</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue
 
-    return htmlPrologue + markdown2.markdown('*404* NOTFOUND\n\r', extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + "<br><h6><a href='http://localhost:7000/writenewmarkdown/" + filename + "'>create " + filename + "</a></h6><br>" + htmlEpilogue
+    return htmlPrologue + markdown2.markdown('*404* NOTFOUND\n\r', extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + "<br><h6><a href='http://localhost:7000/createnewmarkdown/" + filename + "'>create " + filename + "</a></h6><br>" + htmlEpilogue
 
 
 if __name__ == '__main__':
