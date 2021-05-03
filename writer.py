@@ -392,6 +392,7 @@ def sethtmlbasis():
     global htmlPrologue
     global htmlEpilogue
     global hcard
+    global hcardurl
 
     if 'items' in hcard:
         name = hcard['items'][0]['properties']['name']
@@ -412,13 +413,18 @@ def sethtmlbasis():
     <style type=text/css>""" + css + """</style>
   </head>
   <body>
-  <span id="hcard" class="hcard">
+  <span id="h-card" class="h-card">
     <table>
       <tr>
-        <td rowspan=3>
-            <image src=%s>
+        <td rowspan=4>
+            <image style="width: 120px; height: 120px" src="%s" alt="James Stallings Photo">
         </td>
         <td><table>
+          <tr>
+            <td colspan=2>
+                <h1>WRITER - the read-write web. The web for humans.
+            </td>
+          </tr>
           <tr>
             <td>
                 Name: %s aka %s
