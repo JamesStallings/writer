@@ -10,6 +10,7 @@ cssstate = "day"
 css = ""
 htmlPrologue = ""
 htmlEpilogue = ""
+hcardurl = "http://jamesstallings.code4peeps.life"
 hcard = dict()
 
 """ siteroot = "site/"
@@ -502,9 +503,9 @@ def togglecss():
 @app.route('/importhcard', methods=['GET'])
 def importhcard():
     global hcard
+    global hcardurl
 
-    with open('hcard.html','r') as file:
-        hcard = mf2py.parse(file.read())
+    hcard = mf2py.parse(url=hcardurl)
 
     sethtmlbasis()
     return redirect(redirect_url())
