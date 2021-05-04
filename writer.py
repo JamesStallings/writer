@@ -8,8 +8,8 @@ app = Flask(__name__, static_url_path='')
 currentresource = ""
 cssstate = "day"
 css = ""
-htmlPrologue = ""
-htmlEpilogue = ""
+htmlPrefix = ""
+htmlPostfix = ""
 hcardurl = "http://jamesstallings.code4peeps.life"
 hcard = dict()
 
@@ -25,8 +25,8 @@ mdfile = ""
 
 def sethtmlbasis():
     global sitemarkdown
-    global htmlPrologue
-    global htmlEpilogue
+    global htmlPrefix
+    global htmlPostfix
     global hcard
     global hcardurl
     global css
@@ -34,35 +34,38 @@ def sethtmlbasis():
     global mdfile
 
     cssfile = "writer-%s.css" % cssstate
+
+    print("CSS file selected: %s" % cssfile)
+
     if path.exists(cssfile):
         with open(cssfile) as f:
             css = f.read()
-            f.close()
+        print("CSS %s read" % cssfile)
+
+    hcard = mf2py.parse(url=hcardurl)
 
     if 'items' in hcard:
         name = hcard['items'][0]['properties']['name']
         nickname = hcard['items'][0]['properties']['nickname']
         photourl = hcard['items'][0]['properties']['photo']
-        hcardurl = hcard['items'][0]['properties']['url']
         org = hcard['items'][0]['properties']['org']
         title = hcard['items'][0]['properties']['job-title']
         role = hcard['items'][0]['properties']['role']
         email = hcard['items'][0]['properties']['email']
         phone = hcard['items'][0]['properties']['tel']
         note0 = hcard['items'][0]['properties']['note']
+    else:
+        name = 'N/A'
+        nickname = 'N/A'
+        photourl = 'nobody.png'
+        org = 'none'
+        title = 'empty'
+        role = 'unassigned'
+        email = 'mailto: nobody@mailinator.com'
+        phone = '800 one song'
+        note0 = 'this is a default h-card'
 
-        file_name = siteroot + sitemarkdown + mdfile + ".pre"
-        if mdfile != "" and path.exists(file_name):
-            with open(file_name) as f:
-                htmlPrologue = f.read()
-                f.close()
-        file_name = siteroot + sitemarkdown + mdfile + ".post"
-        if mdfile != "" and path.exists(file_name):
-            with open(file_name) as f:
-                htmlEpilogue = f.read()
-                f.close()
-        else:
-            htmlPrologue = """
+    htmlPrefix = """
  <!DOCTYPE html>
 <html lang="en" class="no-js">
 <head>
@@ -133,19 +136,7 @@ def sethtmlbasis():
     </table>
   </span>""" % (photourl[0], name[0], nickname[0], org[0], title[0], role[0], hcardurl[0], email[0], phone[0], note0[0])
 
-# no hcard
-    else:
-        htmlPrologue = """
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>writer markdown service 0.1a</title>
-    <style type=text/css>""" + css + """</style>
-  </head>
-  <body>
-"""
-
-    htmlEpilogue = """
+    htmlPostfix = """
     <footer>
       <h6>A complete <a href="https://www.markdownguide.org/basic-syntax/" target="top">markdown reference</a> is available</h6>
       <h6><a href="#open-modal">system menu</a></h6>
@@ -154,25 +145,32 @@ def sethtmlbasis():
           <a href="#modal-close" title="close" class="modal-close">close &times;</a>
           <h1>system menu</h1>
           <div><a href='http://localhost:7000/togglecss'>toggle CSS</a><div>
-          <div><a href='http://localhost:7000/importhcard'>import hcard.html<a><div>
         </div>
       </div>
     </footer>
   </body>
-</html>
-"""
+</html>"""    
+    file_name = siteroot + sitemarkdown + mdfile + ".pre"
+    if mdfile != "" and path.exists(file_name):
+        with open(file_name) as f:
+            htmlPrefix = f.read()
+        print("html prologue %s read" % file_name)
 
+    file_name = siteroot + sitemarkdown + mdfile + ".post"
+    if mdfile != "" and path.exists(file_name):
+        with open(file_name) as f:
+            htmlPostfix = f.read()
+        print("html epilogue %s read" % file_name)
 
 def redirect_url():
     return request.args.get('next') or request.referrer or url_for('index')
-
 
 @app.route('/togglecss', methods=['GET'])
 def togglecss():
     global cssstate
     global css
-    global htmlPrologue
-    global htmlEpilog
+    global htmlPrefix
+    global htmlPostfix
 
     if cssstate == "night":
         cssstate = "day"
@@ -182,21 +180,10 @@ def togglecss():
     sethtmlbasis()
     return redirect(redirect_url())
 
-
-@app.route('/importhcard', methods=['GET'])
-def importhcard():
-    global hcard
-    global hcardurl
-
-    hcard = mf2py.parse(url=hcardurl)
-
-    sethtmlbasis()
-    return redirect(redirect_url())
-    
 @app.route('/writemarkdown', methods=['POST'])
 def writemarkdown():
-    global htmlPrologue
-    global htmlEpilog
+    global htmlPrefix
+    global htmlPostfix
     global mdfile
 
     mdfile = request.form['filename']
@@ -204,22 +191,39 @@ def writemarkdown():
     if request.form['submit'] == 'cancel':
         return redirect('http://localhost:7000/writer/' + mdfile)
     elif request.form['submit'] == 'done':
-        file_name = siteroot + sitemarkdown + request.form['filename']
-        f = open(file_name, 'w')
-        f.write(request.form['markdowntxt'])
-        f.close()
+
+        file_name = siteroot + sitemarkdown + mdfile
+        print("Writing file %s" % file_name)
+        with open(file_name, 'w') as f:
+            f.write(request.form['markdowntxt'])
+        print("File %s written" % file_name) 
+
+        sethtmlbasis()
+
+        file_name = siteroot + sitemarkdown + mdfile + ".pre"
+        print("Writing file %s" % file_name)
+        with open(file_name, 'w') as f:
+            f.write(htmlPrefix)
+        print("File %s written" % file_name) 
+
+        file_name = siteroot + sitemarkdown + mdfile + ".post"
+        print("Writing file %s" % file_name)
+        with open(file_name, 'w') as f:
+            f.write(htmlPostfix)
+        print("File %s written" % file_name) 
+
         return redirect('http://localhost:7000/writer/' + request.form['filename'])
         
 
 @app.route('/createnewmarkdown/<filename>', methods=['GET'])
 def createnewmarkdown(filename):
-    global htmlPrologue
-    global htmlEpilog
+    global htmlPrefix
+    global htmlPostfix
     global mdfile
 
     mdfile = mdfile
 
-    return htmlPrologue + """
+    return htmlPrefix + """
 <form method='POST' action="/writemarkdown" role='form'>
 <textarea id='markdowntxt' name='markdowntxt' rows='32' cols='120'>
 """ + "be somebody" + """
@@ -229,13 +233,13 @@ def createnewmarkdown(filename):
 <input type='submit' name='submit' value='done'>
 <input type='submit' name='submit' value='cancel'>
 </form>
-""" + htmlEpilogue
+""" + htmlPostfix
 
 
 @app.route('/editmarkdown/<filename>', methods=['GET'])
 def editmarkdown(filename):
-    global htmlPrologue
-    global htmlEpilog
+    global htmlPrefix
+    global htmlPostfix
     global mdfile
 
     file_name = siteroot + sitemarkdown + filename
@@ -245,7 +249,7 @@ def editmarkdown(filename):
             read_data = f.read()
             f.close()
 
-        return htmlPrologue + """
+        return htmlPrefix + """
 <form method='POST' action="/writemarkdown" role='form'>
 <textarea id='markdowntxt' name='markdowntxt' rows='32' cols='120'>
 """ + read_data + """
@@ -255,15 +259,15 @@ def editmarkdown(filename):
 <input type='submit' name='submit' value='done'>
 <input type='submit' name='submit' value='cancel'>
 </form>
-""" + htmlEpilogue
+""" + htmlPostfix
     else:
-        return htmlPrologue + markdown2.markdown('*404* NOTFOUND\n\r',extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue
+        return htmlPrefix + markdown2.markdown('*404* NOTFOUND\n\r',extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlPostfix
 
 
 @app.route('/writer/')
 def renderdefaultview():
-    global htmlPrologue
-    global htmlEpilog
+    global htmlPrefix
+    global htmlPostfix
     global siteroot
     global sitemarkdown
     global mdfile
@@ -273,23 +277,24 @@ def renderdefaultview():
         with open(siteroot + sitemarkdown + 'index.md') as f:
             read_data = f.read()
 
-        return htmlPrologue + "<br><h6><a href='http://localhost:7000/editmarkdown/index.md'>edit index.md</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue
+        return htmlPrefix + "<br><h6><a href='http://localhost:7000/editmarkdown/index.md'>edit index.md</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlPostfix
     else:
         scripts = ""
         for file_name in glob.iglob('./*.md', recursive=True):
             scripts = scripts + '[' + file_name + '](' + file_name + ')' + '\n\r'
 
-        return htmlPrologue + markdown2.markdown(scripts, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue
+        return htmlPrefix + markdown2.markdown(scripts, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlPostfix
 
 
 @app.route('/writer/<filename>')
 def writer(filename):
-    global htmlPrologue
-    global htmlEpilogue
+    global htmlPrefix
+    global htmlPostfix
     global siteroot
     global siteimages
     global sitemarkdown
 
+    sethtmlbasis()
     if (path.exists(siteroot + siteimages + filename)):
         if filename[-3:] in {"png", "jpg", "gif"}:
             return send_from_directory(siteroot + siteimages, filename)
@@ -299,9 +304,9 @@ def writer(filename):
             with open(siteroot + sitemarkdown + filename) as f:
                 read_data = f.read()
 
-            return htmlPrologue + "<br><h6><a href='http://localhost:7000/editmarkdown/" + filename + "'>edit " + filename + "</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlEpilogue
+            return htmlPrefix + "<br><h6><a href='http://localhost:7000/editmarkdown/" + filename + "'>edit " + filename + "</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlPostfix
 
-    return htmlPrologue + markdown2.markdown('*404* NOTFOUND\n\r', extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + "<br><h6><a href='http://localhost:7000/createnewmarkdown/" + filename + "'>create " + filename + "</a></h6><br>" + htmlEpilogue
+    return htmlPrefix + markdown2.markdown('*404* NOTFOUND\n\r', extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + "<br><h6><a href='http://localhost:7000/createnewmarkdown/" + filename + "'>create " + filename + "</a></h6><br>" + htmlPostfix
 
 
 if __name__ == '__main__':
