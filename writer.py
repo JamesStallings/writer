@@ -2,6 +2,7 @@ from flask import Flask, request, redirect, url_for, send_from_directory
 import glob
 import markdown2
 import mf2py
+from datetime import datetime, date
 from os import path
 
 app = Flask(__name__, static_url_path='')
@@ -12,6 +13,7 @@ htmlPrefix = ""
 htmlPostfix = ""
 hcardurl = "http://jamesstallings.code4peeps.life"
 hcard = dict()
+scard = dict()
 
 """ siteroot = "site/"
 siteimages = "images/"
@@ -22,6 +24,38 @@ siteimages = ""
 sitemarkdown = ""
 
 mdfile = ""
+def readHcard():
+    global hcardurl
+    global hcard
+    global scard
+    global mdfile
+    global htmlPrefix
+    global htmlPostfix
+
+    hcard = mf2py.parse(url=hcardurl)
+
+    if 'items' in hcard:
+        scard['name'] = hcard['items'][0]['properties']['name']
+        scard['nickname'] = hcard['items'][0]['properties']['nickname']
+        scard['photourl'] = hcard['items'][0]['properties']['photo']
+        scard['org'] = hcard['items'][0]['properties']['org']
+        scard['title'] = hcard['items'][0]['properties']['job-title']
+        scard['role'] = hcard['items'][0]['properties']['role']
+        scard['email'] = hcard['items'][0]['properties']['email']
+        scard['phone'] = hcard['items'][0]['properties']['tel']
+        scard['note0'] = hcard['items'][0]['properties']['note']
+    else:
+        scard['name'] = "Unattributed"
+        scard['nickname'] = "No such."
+        scard['photourl'] = "nobody.png"
+        scard['org'] = "Unafilliated"
+        scard['title'] = "Untitled"
+        scard['role'] = "Ronin"
+        scard['email'] = "mailto: ronin@mailinator.com"
+        scard['phone'] = "+1.800.347.5417"
+        scard['note0'] = "Functionally Anonymous"
+
+    return
 
 def sethtmlbasis():
     global sitemarkdown
@@ -33,6 +67,8 @@ def sethtmlbasis():
     global cssstate
     global mdfile
 
+    readHcard()
+
     cssfile = "writer-%s.css" % cssstate
 
     print("CSS file selected: %s" % cssfile)
@@ -41,29 +77,6 @@ def sethtmlbasis():
         with open(cssfile) as f:
             css = f.read()
         print("CSS %s read" % cssfile)
-
-    hcard = mf2py.parse(url=hcardurl)
-
-    if 'items' in hcard:
-        name = hcard['items'][0]['properties']['name']
-        nickname = hcard['items'][0]['properties']['nickname']
-        photourl = hcard['items'][0]['properties']['photo']
-        org = hcard['items'][0]['properties']['org']
-        title = hcard['items'][0]['properties']['job-title']
-        role = hcard['items'][0]['properties']['role']
-        email = hcard['items'][0]['properties']['email']
-        phone = hcard['items'][0]['properties']['tel']
-        note0 = hcard['items'][0]['properties']['note']
-    else:
-        name = 'N/A'
-        nickname = 'N/A'
-        photourl = 'nobody.png'
-        org = 'none'
-        title = 'empty'
-        role = 'unassigned'
-        email = 'mailto: nobody@mailinator.com'
-        phone = '800 one song'
-        note0 = 'this is a default h-card'
 
     htmlPrefix = """
  <!DOCTYPE html>
@@ -134,9 +147,11 @@ def sethtmlbasis():
         </td>
       </tr>
     </table>
-  </span>""" % (photourl[0], name[0], nickname[0], org[0], title[0], role[0], hcardurl[0], email[0], phone[0], note0[0])
+  </span>""" % (scard['photourl'][0], scard['name'], scard['nickname'], scard['org'], scard['title'], scard['role'], hcardurl, scard['email'], scard['phone'], scard['note0'][0])
 
     htmlPostfix = """
+            </div>
+        </article>
     <footer>
       <h6>A complete <a href="https://www.markdownguide.org/basic-syntax/" target="top">markdown reference</a> is available</h6>
       <h6><a href="#open-modal">system menu</a></h6>
@@ -186,8 +201,14 @@ def writemarkdown():
     global htmlPrefix
     global htmlPostfix
     global mdfile
+    global readHcard
+    global scard
 
     mdfile = request.form['filename']
+
+    sethtmlbasis()
+
+    readHcard()
 
     if request.form['submit'] == 'cancel':
         return redirect('http://localhost:7000/writer/' + mdfile)
@@ -199,8 +220,33 @@ def writemarkdown():
             f.write(request.form['markdowntxt'])
         print("File %s written" % file_name) 
 
-        sethtmlbasis()
+        """ this is where h-entry information will be injected into the html. It should then be written out after sethtmlbasis
+    assenbles it into the html prefix
+        """
 
+        now = datetime.now()
+        datenow = date.today()
+        article = request.form['articleTitle']
+        summary = request.form['articleSummary']
+
+        if not article:
+            article = "Untitled"
+
+        if not summary:
+            summary = "no summary"
+
+        print("Setting up %s, %s on %s" % (article, summary, now))
+        
+        htmlPrefix = htmlPrefix + "<article class='h-entry'><h1 class='p-name'>" + article
+        htmlPrefix = htmlPrefix + "</h1><p>Published by <a class='p-author h-card' href='" + hcardurl
+        htmlPrefix = htmlPrefix + "'>" + scard['name'][0]
+        htmlPrefix = htmlPrefix + " aka " + scard['nickname'][0]
+        htmlPrefix = htmlPrefix + "</a>on <time class='dt-published' datetime='" + now.strftime("%d-%m-%Y %H:%M:%S")
+        htmlPrefix = htmlPrefix + "'>" + datenow.strftime("%b-%d-%Y")
+        htmlPrefix = htmlPrefix + "</time></p><p class='p-summary'>" + summary
+        htmlPrefix = htmlPrefix + "</p><div class='e-content'>"
+
+        print(htmlPrefix)
         file_name = siteroot + sitemarkdown + mdfile + ".pre"
         print("Writing file %s" % file_name)
         with open(file_name, 'w') as f:
@@ -224,9 +270,16 @@ def createnewmarkdown(filename):
 
     mdfile = mdfile
 
+    readHcard()
+
     return htmlPrefix + """
 <form method='POST' action="/writemarkdown" role='form'>
-<textarea id='markdowntxt' name='markdowntxt' rows='32' cols='120'>
+<label for="articleTitle">Article Title</label>
+<input type="text" name="articleTitle" id="articleTitle"></input><br>
+<label for="articleSummary">Article Summary</label>
+<input type="text" name="articleSummary" id="articleSummary"></input><br>
+<label for="markdowntxt">Post:
+<textarea id='markdowntxt' name='markdowntxt' rows='30' cols='120'>
 """ + "be somebody" + """
 </textarea>
 <br>
@@ -243,15 +296,33 @@ def editmarkdown(filename):
     global htmlPostfix
     global mdfile
 
-    file_name = siteroot + sitemarkdown + filename
-    if path.exists(file_name):
-        mdfile = filename
-        with open(file_name) as f:
-            read_data = f.read()
-            f.close()
+    if path.exists(siteroot + sitemarkdown + filename):
+        print("requested " + filename +" found")
+        if filename[-3:] == ".md":
+            if path.exists(siteroot + sitemarkdown + filename + ".pre"):
+                with open(siteroot + sitemarkdown + filename + ".pre","r") as f:
+                    htmlPrefix = f.read()
+                print("Prefix read")
+            else:
+                print("No prefix found")
+            if path.exists(siteroot + sitemarkdown + filename + ".post"):
+                with open(siteroot + sitemarkdown + filename + ".pre","r") as f:
+                    htmlPostfix = f.read()
+                print("Postfix read")    
+            else:
+                print("No postfix found")
+
+            with open(siteroot + sitemarkdown + filename) as f:
+                read_data = f.read()
+            print("Markdown read")
 
         return htmlPrefix + """
 <form method='POST' action="/writemarkdown" role='form'>
+<label for="articleTitle">Article Title</label>
+<input type="text" name="articleTitle" id="articleTitle"></input><br>
+<label for="articleSummary">Article Summary</label>
+<input type="text" name="articleSummary" id="articleSummary"></input><br>
+<label for="markdowntxt">Post:
 <textarea id='markdowntxt' name='markdowntxt' rows='32' cols='120'>
 """ + read_data + """
 </textarea>
@@ -271,6 +342,8 @@ def renderdefaultview():
     global htmlPostfix
     global siteroot
     global sitemarkdown
+    global hcard
+    global scard
     global mdfile
 
     if path.exists(siteroot + sitemarkdown + 'index.md'):
@@ -296,14 +369,32 @@ def writer(filename):
     global sitemarkdown
 
     sethtmlbasis()
-    if (path.exists(siteroot + siteimages + filename)):
+
+    if (path.exists(siteroot + siteimages + filename) and filename[-3:] != ".md"):
+        print("Send Image " + filename)
         if filename[-3:] in {"png", "jpg", "gif"}:
             return send_from_directory(siteroot + siteimages, filename)
 
     if path.exists(siteroot + sitemarkdown + filename):
+        print("requested " + filename +" found")
         if filename[-3:] == ".md":
+            if path.exists(siteroot + sitemarkdown + filename + ".pre"):
+                with open(siteroot + sitemarkdown + filename + ".pre","r") as f:
+                    htmlPrefix = f.read()
+                print("Prefix read")
+            else:
+                print("No prefix found")
+            if path.exists(siteroot + sitemarkdown + filename + ".post"):
+                with open(siteroot + sitemarkdown + filename + ".pre","r") as f:
+                    htmlPostfix = f.read()
+                print("Postfix read")    
+            else:
+                print("No postfix found")
+
             with open(siteroot + sitemarkdown + filename) as f:
                 read_data = f.read()
+            print("Markdown read")
+            
 
             return htmlPrefix + "<br><h6><a href='http://localhost:7000/editmarkdown/" + filename + "'>edit " + filename + "</a></h6><br>" + markdown2.markdown(read_data, extras=["footnote","strike","tables","code-color","code-friendly","cuddled-lists","fenced-code-blocks"]) + htmlPostfix
 
