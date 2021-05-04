@@ -150,18 +150,19 @@ def sethtmlbasis():
     </footer>
   </body>
 </html>"""    
-    file_name = siteroot + sitemarkdown + mdfile + ".pre"
+
+"""    file_name = siteroot + sitemarkdown + mdfile + ".pre"
     if mdfile != "" and path.exists(file_name):
         with open(file_name) as f:
             htmlPrefix = f.read()
-        print("html prologue %s read" % file_name)
+        print(" * html prologue %s read" % file_name)
 
     file_name = siteroot + sitemarkdown + mdfile + ".post"
     if mdfile != "" and path.exists(file_name):
         with open(file_name) as f:
             htmlPostfix = f.read()
-        print("html epilogue %s read" % file_name)
-
+        print(" * html epilogue %s read" % file_name)
+"""
 def redirect_url():
     return request.args.get('next') or request.referrer or url_for('index')
 
