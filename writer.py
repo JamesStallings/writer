@@ -11,7 +11,7 @@ cssstate = "day"
 css = ""
 htmlPrefix = ""
 htmlPostfix = ""
-hcardurl = "http://jamesstallings.code4peeps.life"
+hcardurl = "http://code4peeps.life"
 hcard = dict()
 scard = dict()
 
